@@ -1,0 +1,693 @@
+import React, { useState, useEffect } from ‘react’;
+import { ChevronLeft, ChevronRight } from ‘lucide-react’;
+
+// Quaternion class for smooth rotations
+class Quaternion {
+constructor(w, x, y, z) {
+this.w = w;
+this.x = x;
+this.y = y;
+this.z = z;
+}
+
+static fromAxisAngle(axis, angle) {
+const halfAngle = angle / 2;
+const s = Math.sin(halfAngle);
+return new Quaternion(
+Math.cos(halfAngle),
+axis.x * s,
+axis.y * s,
+axis.z * s
+);
+}
+
+multiply(q) {
+return new Quaternion(
+this.w * q.w - this.x * q.x - this.y * q.y - this.z * q.z,
+this.w * q.x + this.x * q.w + this.y * q.z - this.z * q.y,
+this.w * q.y - this.x * q.z + this.y * q.w + this.z * q.x,
+this.w * q.z + this.x * q.y - this.y * q.x + this.z * q.w
+);
+}
+
+rotateVector(v) {
+const qv = new Quaternion(0, v.x, v.y, v.z);
+const qConj = new Quaternion(this.w, -this.x, -this.y, -this.z);
+const result = this.multiply(qv).multiply(qConj);
+return { x: result.x, y: result.y, z: result.z };
+}
+}
+
+const GatewayVisualizations = () => {
+const [currentTechnique, setCurrentTechnique] = useState(0);
+const [time, setTime] = useState(0);
+
+useEffect(() => {
+const interval = setInterval(() => {
+setTime(t => t + 0.02);
+}, 20);
+return () => clearInterval(interval);
+}, []);
+
+const techniques = [
+{
+name: “Energy Conversion Box”,
+description: “Visualize placing worries and distractions into a protective box”,
+frequency: “4 Hz (Theta) - Deep relaxation state”,
+render: (t) => {
+const particles = [];
+for (let i = 0; i < 8; i++) {
+const spiralAngle = t * 3 + i * Math.PI / 4;
+const spiralRadius = 120 - (t * 40) % 120;
+const opacity = 1 - ((t * 40) % 120) / 120;
+
+```
+      particles.push({
+        x: 200 + Math.cos(spiralAngle) * spiralRadius,
+        y: 200 + Math.sin(spiralAngle) * spiralRadius,
+        opacity
+      });
+    }
+
+    const boxRotation = Quaternion.fromAxisAngle({ x: 0, y: 1, z: 0 }, Math.sin(t) * 0.3);
+    const corners = [
+      { x: -80, y: -60, z: 0 }, { x: 80, y: -60, z: 0 },
+      { x: 80, y: 60, z: 0 }, { x: -80, y: 60, z: 0 },
+      { x: -80, y: -60, z: 40 }, { x: 80, y: -60, z: 40 },
+      { x: 80, y: 60, z: 40 }, { x: -80, y: 60, z: 40 }
+    ];
+    
+    const rotatedCorners = corners.map(c => {
+      const rotated = boxRotation.rotateVector(c);
+      return { x: 200 + rotated.x, y: 200 + rotated.y, z: rotated.z };
+    });
+
+    return (
+      <svg viewBox="0 0 400 400" className="w-full h-full">
+        <defs>
+          <radialGradient id="boxGlow">
+            <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        
+        <circle cx="200" cy="200" r={100 + Math.abs(Math.sin(t * 2)) * 20} fill="url(#boxGlow)" />
+        
+        {[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].map(([a, b], i) => (
+          <line key={i} 
+                x1={rotatedCorners[a].x} y1={rotatedCorners[a].y}
+                x2={rotatedCorners[b].x} y2={rotatedCorners[b].y}
+                stroke="#4f46e5" strokeWidth="2" opacity="0.7" />
+        ))}
+        
+        {particles.map((p, i) => (
+          <g key={i}>
+            <line x1={p.x} y1={p.y} x2="200" y2="200" 
+                  stroke="#fbbf24" strokeWidth="1" opacity={p.opacity * 0.3} />
+            <circle cx={p.x} cy={p.y} r="4" fill="#fbbf24" opacity={p.opacity} />
+          </g>
+        ))}
+      </svg>
+    );
+  }
+},
+{
+  name: "Resonant Humming",
+  description: "Sustained single tone creates resonance between mind and body",
+  frequency: "5-7 Hz (Theta) - Gateway frequency range",
+  render: (t) => {
+    return (
+      <svg viewBox="0 0 400 400" className="w-full h-full">
+        <defs>
+          <radialGradient id="resonanceGlow">
+            <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        
+        <ellipse cx="200" cy="280" rx="40" ry="15" fill="#1e1b4b" opacity="0.3" />
+        <ellipse cx="200" cy="200" rx="50" ry="70" fill="#312e81" />
+        <circle cx="200" cy="150" r="30" fill="#312e81" />
+        
+        {[0, 1, 2, 3, 4, 5].map(i => {
+          const radius = ((t * 100 + i * 40) % 300);
+          const opacity = 1 - (radius / 300);
+          
+          return (
+            <circle key={i} cx="200" cy="150" r={radius} 
+                    fill="none" stroke="#8b5cf6" 
+                    strokeWidth="2" opacity={opacity * 0.7} />
+          );
+        })}
+        
+        <g transform="translate(200, 150)">
+          {[...Array(12)].map((_, i) => {
+            const angle = (i * 30) * Math.PI / 180;
+            const length = 40 + Math.sin(t * 5 + i) * 15;
+            const x2 = Math.cos(angle) * length;
+            const y2 = Math.sin(angle) * length;
+            
+            return (
+              <line key={i} x1="0" y1="0" x2={x2} y2={y2}
+                    stroke="#a78bfa" strokeWidth="2" 
+                    opacity={0.5 + Math.sin(t * 5 + i) * 0.3} />
+            );
+          })}
+        </g>
+      </svg>
+    );
+  }
+},
+{
+  name: "Focus 10 - Mind Awake, Body Asleep",
+  description: "Consciousness remains while physical body enters sleep state",
+  frequency: "3-5 Hz (Theta/Delta border) - Body asleep frequency",
+  render: (t) => {
+    const orbitAxis = { x: Math.sin(t * 0.5), y: Math.cos(t * 0.5), z: 0.3 };
+    const orbitQ = Quaternion.fromAxisAngle(orbitAxis, t * 2);
+    
+    const thoughtParticles = [];
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const basePoint = { 
+        x: Math.cos(angle) * 80, 
+        y: Math.sin(angle) * 80, 
+        z: Math.sin(t * 2 + i) * 20 
+      };
+      const rotated = orbitQ.rotateVector(basePoint);
+      thoughtParticles.push({
+        x: 200 + rotated.x,
+        y: 120 - 10 + Math.sin(t * 2) * 10 + rotated.y,
+        z: rotated.z,
+        opacity: 0.5 + (rotated.z / 40)
+      });
+    }
+
+    return (
+      <svg viewBox="0 0 400 400" className="w-full h-full">
+        <defs>
+          <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#1e293b" />
+            <stop offset="100%" stopColor="#0f172a" />
+          </linearGradient>
+        </defs>
+        
+        <g opacity="0.4">
+          <ellipse cx="200" cy="300" rx="60" ry="20" fill="#0f172a" />
+          <ellipse cx="200" cy="240" rx="50" ry="80" fill="url(#bodyGrad)" />
+          <circle cx="200" cy="180" r="35" fill="url(#bodyGrad)" />
+        </g>
+        
+        <g transform={`translate(0, ${-10 + Math.sin(t * 2) * 10})`}>
+          <circle cx="200" cy="120" r={35 + Math.sin(t * 3) * 3} 
+                  fill="#fbbf24" opacity="0.8" />
+          <circle cx="200" cy="120" r={50 + Math.sin(t * 2) * 5} 
+                  fill="none" stroke="#fbbf24" strokeWidth="2" opacity="0.5" />
+        </g>
+        
+        {thoughtParticles.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="3" 
+                  fill="#fbbf24" opacity={p.opacity} />
+        ))}
+        
+        <line x1="200" y1="180" x2="200" y2={120 - 10 + Math.sin(t * 2) * 10}
+              stroke="#fbbf24" strokeWidth="2" opacity="0.3" 
+              strokeDasharray="5,5" />
+      </svg>
+    );
+  }
+},
+{
+  name: "Focus 12 - Expanded Awareness",
+  description: "Consciousness extends beyond physical reality",
+  frequency: "10 Hz (Alpha) - Expanded awareness state",
+  render: (t) => {
+    const dimensionPoints = [];
+    for (let i = 0; i < 8; i++) {
+      const axis1 = { x: 0, y: 0, z: 1 };
+      const axis2 = { x: Math.cos(i), y: Math.sin(i), z: 0 };
+      
+      const q1 = Quaternion.fromAxisAngle(axis1, t * 0.5);
+      const q2 = Quaternion.fromAxisAngle(axis2, t * 0.3);
+      const combined = q1.multiply(q2);
+      
+      const basePoint = { x: 0, y: 150, z: 0 };
+      const rotated = combined.rotateVector(basePoint);
+      
+      dimensionPoints.push({
+        x: 200 + rotated.x,
+        y: 200 + rotated.y,
+        z: rotated.z,
+        angle: i
+      });
+    }
+
+    return (
+      <svg viewBox="0 0 400 400" className="w-full h-full">
+        <defs>
+          <radialGradient id="expansionGlow">
+            <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#0891b2" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        
+        <circle cx="200" cy="200" r="30" fill="#0891b2" />
+        
+        {[0, 1, 2, 3, 4, 5, 6].map(i => {
+          const radius = 50 + i * 40 + (t * 50 % 40);
+          const opacity = 1 - ((t * 50 % 40) / 40);
+          
+          return (
+            <circle key={i} cx="200" cy="200" r={radius}
+                    fill="none" stroke="#06b6d4" 
+                    strokeWidth="2" opacity={opacity * 0.6} />
+          );
+        })}
+        
+        {dimensionPoints.map((p, i) => {
+          const pulseSize = 8 + Math.sin(t * 3 + p.angle) * 4;
+          
+          return (
+            <g key={i}>
+              <line x1="200" y1="200" x2={p.x} y2={p.y}
+                    stroke="#06b6d4" strokeWidth="1" opacity="0.4" />
+              <circle cx={p.x} cy={p.y} r={pulseSize}
+                      fill="#06b6d4" opacity={0.7 + p.z / 100} />
+              <circle cx={p.x} cy={p.y} r={pulseSize + 5}
+                      fill="none" stroke="#06b6d4" 
+                      strokeWidth="1" opacity="0.4" />
+              
+              {i < dimensionPoints.length - 1 && (
+                <line x1={p.x} y1={p.y} 
+                      x2={dimensionPoints[i + 1].x} 
+                      y2={dimensionPoints[i + 1].y}
+                      stroke="#34d399" strokeWidth="1" opacity="0.3" />
+              )}
+            </g>
+          );
+        })}
+      </svg>
+    );
+  }
+},
+{
+  name: "Focus 15 - Time/Space Transcendence",
+  description: "Moving beyond linear time into simultaneous awareness",
+  frequency: "15 Hz (Beta) - No-time state boundary",
+  render: (t) => {
+    const timePoints = [];
+    for (let i = 0; i < 8; i++) {
+      const axis = { 
+        x: Math.cos(i * Math.PI / 4), 
+        y: Math.sin(i * Math.PI / 4), 
+        z: Math.sin(t + i) 
+      };
+      const q = Quaternion.fromAxisAngle(axis, t * 2);
+      const base = { x: 0, y: 80, z: 0 };
+      const rotated = q.rotateVector(base);
+      
+      timePoints.push({
+        x: 200 + rotated.x,
+        y: 200 + rotated.y,
+        z: rotated.z,
+        phase: i
+      });
+    }
+
+    return (
+      <svg viewBox="0 0 400 400" className="w-full h-full">
+        <defs>
+          <linearGradient id="timeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#7c3aed" />
+            <stop offset="50%" stopColor="#a78bfa" />
+            <stop offset="100%" stopColor="#7c3aed" />
+          </linearGradient>
+          <radialGradient id="centerGlow">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="50%" stopColor="#a78bfa" />
+            <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        
+        <g transform={`rotate(${t * 20} 200 200)`}>
+          <circle cx="200" cy="200" r="120" 
+                  fill="none" stroke="url(#timeGrad)" 
+                  strokeWidth="3" opacity="0.6" />
+          
+          {[...Array(12)].map((_, i) => {
+            const angle = (i / 12) * Math.PI * 2;
+            const q = Quaternion.fromAxisAngle({ x: 0, y: 0, z: 1 }, angle);
+            const point = q.rotateVector({ x: 0, y: 120, z: 0 });
+            
+            return (
+              <g key={i}>
+                <line x1="200" y1="200" x2={200 + point.x} y2={200 + point.y}
+                      stroke="#7c3aed" strokeWidth="2" opacity="0.4" />
+                <circle cx={200 + point.x} cy={200 + point.y} r="6" fill="#a78bfa" />
+              </g>
+            );
+          })}
+        </g>
+        
+        <circle cx="200" cy="200" r={15 + Math.sin(t * 4) * 3}
+                fill="url(#centerGlow)" />
+        
+        {timePoints.map((p, i) => (
+          <g key={i} opacity={0.6 + (p.z / 100)}>
+            <circle cx={p.x} cy={p.y} r="4" fill="#ffffff" />
+            <circle cx={p.x} cy={p.y} r="8" 
+                    fill="none" stroke="#a78bfa" strokeWidth="1" />
+          </g>
+        ))}
+      </svg>
+    );
+  }
+},
+{
+  name: "Hemi-Sync Brain Pattern",
+  description: "Both brain hemispheres synchronized in frequency and amplitude",
+  frequency: "4 Hz (Theta) - Hemisphere synchronization",
+  render: (t) => {
+    return (
+      <svg viewBox="0 0 400 400" className="w-full h-full">
+        <defs>
+          <linearGradient id="leftHemi" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#ec4899" />
+            <stop offset="100%" stopColor="#db2777" />
+          </linearGradient>
+          <linearGradient id="rightHemi" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#3b82f6" />
+            <stop offset="100%" stopColor="#2563eb" />
+          </linearGradient>
+        </defs>
+        
+        <g opacity="0.3">
+          <ellipse cx="140" cy="200" rx="80" ry="100" 
+                   fill="none" stroke="#ec4899" strokeWidth="2" />
+          <ellipse cx="260" cy="200" rx="80" ry="100" 
+                   fill="none" stroke="#3b82f6" strokeWidth="2" />
+        </g>
+        
+        <path d={`M 60 200 ${[...Array(40)].map((_, i) => {
+          const x = 60 + i * 2;
+          const y = 200 + Math.sin((i + t * 15) * 0.3) * 30;
+          return `L ${x} ${y}`;
+        }).join(' ')}`}
+              fill="none" stroke="url(#leftHemi)" strokeWidth="3" />
+        
+        <path d={`M 220 200 ${[...Array(40)].map((_, i) => {
+          const x = 220 + i * 2;
+          const y = 200 + Math.sin((i + t * 15) * 0.3) * 30;
+          return `L ${x} ${y}`;
+        }).join(' ')}`}
+              fill="none" stroke="url(#rightHemi)" strokeWidth="3" />
+        
+        <g transform="translate(200, 200)">
+          {[...Array(6)].map((_, i) => {
+            const size = 20 + i * 10 + (Math.sin(t * 4) * 5);
+            const opacity = 1 - (i * 0.15);
+            
+            return (
+              <circle key={i} cx="0" cy="0" r={size}
+                      fill="none" stroke="#a855f7" 
+                      strokeWidth="2" opacity={opacity} />
+            );
+          })}
+          
+          <circle cx="0" cy="0" r="8" fill="#a855f7" />
+        </g>
+        
+        <text x="200" y="380" textAnchor="middle" 
+              fill="#a855f7" fontSize="14" fontFamily="monospace">
+          SYNCHRONIZED
+        </text>
+      </svg>
+    );
+  }
+},
+{
+  name: "Holographic Universe",
+  description: "Reality as an interconnected holographic projection",
+  frequency: "7.83 Hz (Schumann Resonance) - Earth frequency",
+  render: (t) => {
+    const holoNodes = [];
+    for (let i = 0; i < 12; i++) {
+      const axis1 = { x: Math.cos(i), y: Math.sin(i), z: 0.5 };
+      const axis2 = { x: 0, y: 0, z: 1 };
+      
+      const q1 = Quaternion.fromAxisAngle(axis1, t * 0.3);
+      const q2 = Quaternion.fromAxisAngle(axis2, (i / 12) * Math.PI * 2 + t * 0.5);
+      const combined = q1.multiply(q2);
+      
+      const base = { x: 100, y: 0, z: Math.sin(t * 2 + i) * 20 };
+      const rotated = combined.rotateVector(base);
+      
+      holoNodes.push({
+        x: 200 + rotated.x,
+        y: 200 + rotated.y,
+        z: rotated.z,
+        index: i
+      });
+    }
+
+    return (
+      <svg viewBox="0 0 400 400" className="w-full h-full">
+        <circle cx="200" cy="200" r="8" fill="#10b981" />
+        <circle cx="200" cy="200" r={15 + Math.sin(t * 3) * 3}
+                fill="none" stroke="#10b981" strokeWidth="2" opacity="0.6" />
+        
+        <g opacity="0.4">
+          {[...Array(15)].map((_, i) => {
+            const y = 50 + i * 25;
+            const wave = Math.sin(t * 2 + i * 0.5) * 10;
+            return (
+              <path key={`h${i}`} 
+                    d={`M 50 ${y} Q 200 ${y + wave}, 350 ${y}`}
+                    fill="none" stroke="#10b981" strokeWidth="1" />
+            );
+          })}
+        </g>
+        
+        {holoNodes.map((node, i) => (
+          <g key={i}>
+            <line x1="200" y1="200" x2={node.x} y2={node.y}
+                  stroke="#10b981" strokeWidth="1" opacity="0.4" />
+            <circle cx={node.x} cy={node.y} r="5" 
+                    fill="#34d399" opacity={0.7 + node.z / 40} />
+            
+            {i < holoNodes.length - 1 && (
+              <line x1={node.x} y1={node.y}
+                    x2={holoNodes[i + 1].x} y2={holoNodes[i + 1].y}
+                    stroke="#34d399" strokeWidth="1" opacity="0.3" />
+            )}
+          </g>
+        ))}
+        
+        {[0, 1, 2, 3].map(pulse => {
+          const progress = (t * 2 + pulse * 0.5) % 1;
+          const radius = progress * 150;
+          const opacity = 1 - progress;
+          
+          return (
+            <circle key={pulse} cx="200" cy="200" r={radius}
+                    fill="none" stroke="#10b981" 
+                    strokeWidth="2" opacity={opacity * 0.5} />
+          );
+        })}
+      </svg>
+    );
+  }
+},
+{
+  name: "Remote Viewing Target",
+  description: "Consciousness extending to perceive distant locations",
+  frequency: "21 Hz (Beta) - Focus 21 remote perception",
+  render: (t) => {
+    const visionRays = [];
+    for (let i = 0; i < 7; i++) {
+      const angle = -Math.PI/4 + (i / 6) * (Math.PI/2);
+      const axis = { x: Math.sin(angle), y: Math.cos(angle), z: 0.3 };
+      const q = Quaternion.fromAxisAngle(axis, Math.sin(t * 2 + i) * 0.2);
+      
+      const baseRay = { x: Math.cos(angle) * 200, y: Math.sin(angle) * 200, z: 0 };
+      const rotated = q.rotateVector(baseRay);
+      
+      visionRays.push({
+        x: 80 + rotated.x,
+        y: 200 + rotated.y,
+        opacity: 0.3 + Math.sin(t * 2 + i) * 0.2
+      });
+    }
+
+    return (
+      <svg viewBox="0 0 400 400" className="w-full h-full">
+        <defs>
+          <radialGradient id="viewerGlow">
+            <stop offset="0%" stopColor="#f59e0b" />
+            <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="targetGlow">
+            <stop offset="0%" stopColor="#ef4444" />
+            <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        
+        <g transform="translate(80, 200)">
+          <circle cx="0" cy="0" r="30" fill="url(#viewerGlow)" />
+          <circle cx="0" cy="0" r="15" fill="#f59e0b" />
+          
+          {visionRays.map((ray, i) => (
+            <line key={i} x1="0" y1="0" x2={ray.x - 80} y2={ray.y - 200}
+                  stroke="#fbbf24" strokeWidth="2" opacity={ray.opacity} />
+          ))}
+        </g>
+        
+        <g transform="translate(320, 200)">
+          <circle cx="0" cy="0" r={25 + Math.sin(t * 4) * 5}
+                  fill="url(#targetGlow)" />
+          <circle cx="0" cy="0" r="12" fill="#ef4444" />
+          
+          {[0, 1, 2].map(i => {
+            const radius = 30 + i * 15 + (t * 20 % 15);
+            const opacity = 1 - ((t * 20 % 15) / 15);
+            
+            return (
+              <circle key={i} cx="0" cy="0" r={radius}
+                      fill="none" stroke="#ef4444" 
+                      strokeWidth="2" opacity={opacity * 0.5} />
+            );
+          })}
+        </g>
+        
+        {[...Array(20)].map((_, i) => {
+          const progress = (t * 2 + i * 0.1) % 1;
+          const x = 80 + (320 - 80) * progress;
+          const y = 200 + Math.sin(progress * Math.PI * 2) * 40;
+          const opacity = Math.sin(progress * Math.PI);
+          
+          return (
+            <circle key={i} cx={x} cy={y} r="3"
+                    fill="#fbbf24" opacity={opacity} />
+          );
+        })}
+        
+        <ellipse cx="200" cy="200" rx="120" ry="60"
+                 fill="none" stroke="#fb923c" 
+                 strokeWidth="1" opacity="0.2" 
+                 strokeDasharray="5,5" />
+        
+        <text x="200" y="280" textAnchor="middle" 
+              fill="#f59e0b" fontSize="12" fontFamily="monospace" opacity="0.3">
+          NON-LOCAL PERCEPTION
+        </text>
+      </svg>
+    );
+  }
+}
+```
+
+];
+
+const nextTechnique = () => {
+setCurrentTechnique((prev) => (prev + 1) % techniques.length);
+};
+
+const prevTechnique = () => {
+setCurrentTechnique((prev) => (prev - 1 + techniques.length) % techniques.length);
+};
+
+useEffect(() => {
+const handleKeyDown = (e) => {
+if (e.key === ‘ArrowRight’) nextTechnique();
+if (e.key === ‘ArrowLeft’) prevTechnique();
+};
+window.addEventListener(‘keydown’, handleKeyDown);
+return () => window.removeEventListener(‘keydown’, handleKeyDown);
+}, []);
+
+return (
+<div className="w-full h-screen bg-gray-900 flex flex-col items-center justify-center p-8">
+<div className="max-w-4xl w-full">
+<h1 className="text-3xl font-bold text-white mb-2 text-center">
+Gateway Experience Visualizations
+</h1>
+<p className="text-gray-400 text-center mb-2">
+Visual references for CIA Monroe Institute techniques
+</p>
+<p className="text-sm text-purple-400 text-center mb-8">
+Using Quaternion Mathematics for Smooth 3D Rotations
+</p>
+
+```
+    <div className="bg-gray-800 rounded-lg p-6 mb-6">
+      <div className="aspect-square bg-gray-900 rounded-lg mb-4 overflow-hidden">
+        {techniques[currentTechnique].render(time)}
+      </div>
+
+      <div className="text-center">
+        <h2 className="text-2xl font-semibold text-white mb-2">
+          {techniques[currentTechnique].name}
+        </h2>
+        <p className="text-gray-300 mb-2">
+          {techniques[currentTechnique].description}
+        </p>
+        <p className="text-sm text-blue-400 mb-6 font-mono">
+          🎵 {techniques[currentTechnique].frequency}
+        </p>
+
+        <div className="flex items-center justify-center gap-4">
+          <button
+            onClick={prevTechnique}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            <ChevronLeft size={20} />
+            Previous
+          </button>
+
+          <span className="text-gray-400">
+            {currentTechnique + 1} / {techniques.length}
+          </span>
+
+          <button
+            onClick={nextTechnique}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          >
+            Next
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div className="bg-gray-800 rounded-lg p-4">
+      <h3 className="text-white font-semibold mb-3">All Techniques:</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {techniques.map((tech, idx) => (
+          <button
+            key={idx}
+            onClick={() => setCurrentTechnique(idx)}
+            className={`px-3 py-2 rounded text-sm transition-colors ${
+              currentTechnique === idx
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            {tech.name.split(' - ')[0]}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div className="mt-6 text-center text-gray-500 text-sm">
+      <p>Use arrow keys or buttons to navigate • Animations loop continuously for reference</p>
+      <p className="text-purple-400 mt-1">Hamilton's quaternion mathematics applied to consciousness visualization</p>
+    </div>
+  </div>
+</div>
+```
+
+);
+};
+
+export default GatewayVisualizations;
